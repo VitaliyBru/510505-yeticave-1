@@ -17,7 +17,10 @@ $tomorrow = strtotime('tomorrow midnight');
 $now = strtotime('now');
 
 // далее нужно вычислить оставшееся время до начала следующих суток и записать его в переменную $lot_time_remaining
-$lot_time_remaining = gmdate("H:i:s", $tomorrow - $now);
+$delta_time_in_minutes = floor(($tomorrow - $now) / 60);
+$hours = sprintf("%02d", floor($delta_time_in_minutes / 60));
+$minutes = sprintf("%02d", ($delta_time_in_minutes % 60));
+$lot_time_remaining = $hours . ":" . $minutes;
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -42,14 +45,14 @@ $lot_time_remaining = gmdate("H:i:s", $tomorrow - $now);
         <a class="main-header__add-lot button" href="add-lot.html">Добавить лот</a>
 
         <nav class="user-menu">
-            <?php if($is_auth) : ?>
+            <?php if($is_auth): ?>
                 <div class="user-menu__image">
-                    <img src="<?=$user_avatar ; ?>" width="40" height="40" alt="Пользователь">
+                    <img src="<?=$user_avatar; ?>" width="40" height="40" alt="Пользователь">
                 </div>
                 <div class="user-menu__logged">
-                    <p><?=$user_name ; ?></p>
+                    <p><?=$user_name; ?></p>
                 </div>
-            <?php else : ?>
+            <?php else: ?>
                 <ul class="user-menu__list">
                     <li class="user-menu__item">
                         <a href="#">Регистрация</a>
@@ -106,7 +109,7 @@ $lot_time_remaining = gmdate("H:i:s", $tomorrow - $now);
                             <span class="lot__cost">10 999<b class="rub">р</b></span>
                         </div>
                         <div class="lot__timer timer">
-                            <?=$lot_time_remaining;?>
+                            <?=$lot_time_remaining; ?>
                         </div>
                     </div>
                 </div>
