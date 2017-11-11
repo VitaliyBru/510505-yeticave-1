@@ -7,6 +7,39 @@ $bets = [
     ['name' => 'Евгений', 'price' => 10500, 'ts' => strtotime('-' . rand(25, 50) .' hour')],
     ['name' => 'Семён', 'price' => 10000, 'ts' => strtotime('last week')]
 ];
+
+/**
+ * Возвращает время прошедшее с момента $_ts (time stamp совершения ставки) до настоящего
+ * в формате «ч часов (или м минеут) назад» или «дд.мм.гг в чч:мм»
+ *
+ * @param $_ts принимает time stamp
+ *
+ * @return string
+ */
+function betTime($_ts)
+{
+    /** @var string $result итоговый результат */
+    $result = '';
+    $dt = strtotime('now') - $_ts;
+    if ($dt >= 86400) {
+        $result = date('d.m.y в H:i', $_ts);
+    } elseif ($dt >= 3600) {
+        $result = (string)floor($dt / 3600);
+        /** @var array $rus_case содержит склонение слова «час» */
+        $rus_case = ['Час', '$0 час', '$0 часа', '$0 часов'];
+        /** @var array $pattern паттерны для применеия склонений */
+        $pattern = ['/^1$/', '/^[^1]?1$/', '/^[^1]?[2-4]$/', '/^(1\d)?([^1]?[05-9])?$/'];
+        $result = preg_replace($pattern, $rus_case, $result) . ' назад';
+    } else {
+        $result = (string)floor($dt / 60);
+        /** @var array $rus_case содержит склонение слова «минута» */
+        $rus_case = ['Минуту', '$0 минуту', '$0 минуты', '$0 минут'];
+        /** @var array $pattern паттерны для применеия склонений */
+        $pattern = ['/^1$/', '/^[^1]?1$/', '/^[^1]?[2-4]$/', '/^(1\d)?([^1]?[05-9])?$/'];
+        $result = preg_replace($pattern, $rus_case, $result) . ' назад';
+    }
+    return $result;
+}
 ?>
 
 <!DOCTYPE html>
@@ -111,11 +144,13 @@ $bets = [
                     <h3>История ставок (<span>4</span>)</h3>
                     <!-- заполните эту таблицу данными из массива $bets-->
                     <table class="history__list">
-                        <tr class="history__item">
-                            <td class="history__name"><!-- имя автора--></td>
-                            <td class="history__price"><!-- цена--> р</td>
-                            <td class="history__time"><!-- дата в человеческом формате--></td>
-                        </tr>
+                        <?php foreach ($bets as $bet): ?>
+                            <tr class="history__item">
+                                <td class="history__name"><?=$bet['name']; ?><!-- имя автора--></td>
+                                <td class="history__price"><?=$bet['price']; ?><!-- цена--> р</td>
+                                <td class="history__time"><?=betTime($bet['ts']); ?><!-- дата в человеческом формате--></td>
+                            </tr>
+                        <?php endforeach;; ?>
                     </table>
                 </div>
             </div>
