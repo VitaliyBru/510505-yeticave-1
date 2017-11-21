@@ -74,3 +74,18 @@ function secure(string $user_data)
 {
     return htmlspecialchars($user_data);
 }
+
+function lotTimeRemaining ()
+{
+    // временная метка для полночи следующего дня
+    $tomorrow = strtotime('tomorrow midnight');
+
+// временная метка для настоящего времени
+    $now = strtotime('now');
+
+// далее нужно вычислить оставшееся время до начала следующих суток и записать его в переменную $lot_time_remaining
+    $delta_time_in_minutes = floor(($tomorrow - $now) / 60);
+    $hours = sprintf("%02d", floor($delta_time_in_minutes / 60));
+    $minutes = sprintf("%02d", ($delta_time_in_minutes % 60));
+    return $hours . ":" . $minutes;
+}
