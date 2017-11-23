@@ -89,3 +89,91 @@ function lotTimeRemaining ()
     $minutes = sprintf("%02d", ($delta_time_in_minutes % 60));
     return $hours . ":" . $minutes;
 }
+
+
+/**
+ * Возвращает false если строка это число больше ноля
+ *
+ * @param string $value строка с числом
+ *
+ * @return bool
+ */
+function isNotPositiveNumber(string $value)
+{
+    return $value != (int)$value or $value <= 0;
+}
+
+/**
+ * Возвращает true если строка пустая
+ *
+ * @param string $value экзаминуемая строка
+ *
+ * @return bool
+ */
+function isEmpty(string $value)
+{
+    return $value == '';
+}
+
+/**
+ * Возвращает true если значение не содержится в массиве
+ *
+ * @param array $complex принимает массив с искомым значением и массивом в котором будет происходить поиск
+ *
+ * @return bool
+ */
+function isNotCategory($complex = [])
+{
+    $answer = true;
+    foreach ($complex['categories'] as $value){
+        if ($complex['value'] == $value['name']) {
+            $answer = false;
+            break;
+        }
+    }
+    return $answer;
+}
+
+/**
+ * Возвращает false если дата в требуемом формате и еще не наступила
+ *
+ * @param string $value дата в формате «дд.мм.гггг»
+ *
+ * @return bool
+ */
+function isNotFutureDate(string $value)
+{
+    $answer = true;
+    if ($date = DateTime::createFromFormat('d.m.Y', $value)) {
+        $answer = ($date->format('d.m.Y') != $value or $date->getTimestamp() < strtotime('now'));
+    }
+    return $answer;
+}
+
+/**
+ * Проверяет переданный методом POST файл на соответствие MIME типу, перемещает в указанную директорию и
+ * возвращает путь к файлу если операция прошла успешно, и пустую строку в случае неудачи.
+ *
+ * @param string $uploading_name значение «name» в теге <input>
+ * @param string $directories папка в которую будет перемещен файл в формате «/folder_name/»
+ * где folder_name относительный путь к папке
+ *
+ * @return string
+ */
+function getImageFromForm(string $uploading_name, string $directories = '/img/')
+{
+    $img_url = '';
+    if (isset($_FILES[$uploading_name]) && $_FILES[$uploading_name]['tmp_name']) {
+        $file_name = $_FILES[$uploading_name]['tmp_name'];
+        $mime = mime_content_type($file_name);
+        $accepted_type = ['image/jpeg' => '.jpg', 'image/png' => '.png'];
+        if (array_key_exists($mime, $accepted_type)) {
+            $file_path = $directories . uniqid('img_', true);
+            $file_path .= $accepted_type[$mime];
+            if (move_uploaded_file($file_name, __DIR__ . $file_path)) {
+                $img_url = $file_path;
+            }
+        }
+    }
+    return $img_url;
+}
