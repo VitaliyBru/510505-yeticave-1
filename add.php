@@ -4,7 +4,7 @@ require_once 'artificial_bd.php';
 
 date_default_timezone_set('Europe/Moscow');
 
-$error = [
+$errors = [
     'form' => false,
     'name' => false,
     'description' => false,
@@ -44,13 +44,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
     $lot['category'] = array('value' => $lot['category'], 'categories' => $categories);
     foreach ($lot as $key => $value) {
-        $error[$key] = call_user_func($e_rules[$key], $value);
-        if ($error[$key] && !$error['form']) {
-            $error['form'] = true;
+        $errors[$key] = call_user_func($e_rules[$key], $value);
+        if ($errors[$key] && !$errors['form']) {
+            $errors['form'] = true;
         }
     }
     $lot['category'] = $lot['category']['value'];
-    if (!$error['form']) {
+    if (!$errors['form']) {
         // здесь будет: запись в бд и получение айди
         // здесь будет: перенаправление на страницу лота
         // удалить после подключения бд
@@ -67,12 +67,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $first_visit = false;
 }
 // Удалить иф после подключения бд
-if ($error['form'] || $first_visit) {
+if ($errors['form'] || $first_visit) {
     $main_content = templateEngine(
         'add',
         [
             'categories' => $categories,
-            'error' => $error,
+            'errors' => $errors,
             'lot' => $lot
         ]
     );
