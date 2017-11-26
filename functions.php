@@ -41,8 +41,9 @@ function betTime($_ts)
         // Первая не единица (может отсутствовать) следующая от 2 до 4 (для «часа» или «минуты»)
         '/^[^1]?[2-4]$/',
         /* Первая единица вторая любая десятичная цифра или
-        Первая не единица (может отсутствовать) следующая 0 или от 5 до 9 (для «часов» или «минут») */
-        '/^(1\d)?([^1]?[05-9])?$/'
+        Первая не единица следующая [0 или от 5 до 9] или
+        От 5 до 9 (для «часов» или «минут») */
+        '/^(1\d)?([^1][05-9])?([5-9])?$/'
     ];
     $dt = strtotime('now') - $_ts;
     if ($dt >= 86400) {
@@ -55,7 +56,7 @@ function betTime($_ts)
     } else {
         $result = (string)floor($dt / 60);
         /** @var array $rus_case содержит склонение слова «минута» */
-        $rus_case = ['Минуту', '$0 минуту', '$0 минуты', '$0 минут', 'меньше минуты' ];
+        $rus_case = ['Минуту', '$0 минуту', '$0 минуты', '$0 минут', 'Меньше минуты' ];
         // Добавляем условие если «0» то «меньше минуты»
         $pattern[] = '/^0/';
         $result = preg_replace($pattern, $rus_case, $result) . ' назад';
@@ -94,11 +95,11 @@ function lotTimeRemaining ()
 /**
  * Возвращает false если строка это число больше ноля
  *
- * @param string $value строка с числом
+ * @param mixed $value строка с числом
  *
  * @return bool
  */
-function isNotPositiveNumber(string $value)
+function isNotPositiveNumber($value)
 {
     return $value != (int)$value or $value <= 0;
 }
@@ -176,4 +177,35 @@ function getImageFromForm(string $uploading_name, string $directories = '/img/')
         }
     }
     return $img_url;
+}
+
+/**
+ * @param $bet_sanded
+ * @param $not_less
+ * @return bool
+ */
+function isBetCorrect ($bet_sanded, $not_less)
+{
+    if (!isNotPositiveNumber($bet_sanded)) {
+        if ($bet_sanded >= $not_less) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * @param $_lot
+ * @param $_bets
+ * @return mixed
+ */
+function getBetAmounts($_lot, $_bets)
+{
+    if (isset($_bets[0]['price'])) {
+        $bet_amount['current'] = max(array_column($_bets, 'price'));
+        $bet_amount['not_less'] = $bet_amount['current'] + $_lot['price_step'];
+    } else {
+        $bet_amount['current'] = $bet_amount['not_less'] = $_lot['price_origin'];
+    }
+    return $bet_amount;
 }
