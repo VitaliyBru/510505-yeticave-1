@@ -18,7 +18,7 @@
             <p class="lot-item__description"><?=secure($lot['description']); ?></p>
         </div>
         <div class="lot-item__right">
-            <div class="lot-item__state" <?=$bet_done ? 'style="visibility:hidden;"' : ''; ?>>
+            <div class="lot-item__state"<?=$bet_forbidden ? ' style="visibility:hidden;"' : ''; ?>>
                 <div class="lot-item__timer timer">
                     <?=lotTimeRemaining(); ?>
                 </div>

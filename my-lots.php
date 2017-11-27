@@ -1,6 +1,14 @@
 <?php
 require_once 'functions.php';
 require_once  'artificial_bd.php';
+require_once 'authorization.php';
+
+if (!$is_auth) {
+    header('Location: /login.php');
+}
+
+// устанавливаем часовой пояс в Московское время
+date_default_timezone_set('Europe/Moscow');
 
 $lots_with_my_bets = null;
 

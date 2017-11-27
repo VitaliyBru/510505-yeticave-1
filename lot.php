@@ -1,6 +1,7 @@
 <?php
 require_once 'functions.php';
 require_once  'artificial_bd.php';
+require_once 'authorization.php';
 
 /** @var int $id идентификатор лота */
 $id = $_GET['id'] ?? null;
@@ -29,8 +30,9 @@ if (array_key_exists($id, $lots)) {
     }
 
     $bet_amounts = getBetAmounts($lot, $bets);
+    $bet_forbidden = ($bet_done or !$is_auth);
 
-    if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$bet_done) {
+    if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$bet_forbidden) {
         $bet_sent = null;
         if (isset($_POST['cost'])) {
             $bet_sent = $_POST['cost'];
@@ -60,7 +62,7 @@ if (array_key_exists($id, $lots)) {
             'lot' => $lot,
             'bets' => $bets,
             'bet_amounts' => $bet_amounts,
-            'bet_done' => $bet_done
+            'bet_forbidden' => $bet_forbidden
         ]
     );
 } else {
