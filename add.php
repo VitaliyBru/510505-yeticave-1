@@ -1,6 +1,24 @@
 <?php
 require_once 'functions.php';
 require_once 'artificial_bd.php';
+require_once 'authorization.php';
+
+if (!$is_auth) {
+    header('HTTP/1.1 403 Forbidden');
+    $main_content = '<h2>Ошибка 403</h2><span>Неавторизованным пользователям доступ запрещен</span>';
+    echo templateEngine(
+        'layout',
+        [
+            'title' => 'Добавление лота',
+            'is_auth' => $is_auth,
+            'user_name' => $user_name,
+            'user_avatar' => $user_avatar,
+            'categories' => $categories,
+            'main_content' => $main_content
+        ]
+    );
+    exit();
+}
 
 date_default_timezone_set('Europe/Moscow');
 
@@ -35,7 +53,7 @@ $e_rules = [
 //удалить после подключения бд
 $first_visit = true;
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && $is_auth) {
     if (isset($_POST['lot'])) {
         $lot = $_POST['lot'];
     }

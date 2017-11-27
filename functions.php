@@ -93,9 +93,9 @@ function lotTimeRemaining ()
 
 
 /**
- * Возвращает false если строка это число больше ноля
+ * Возвращает false если число больше ноля
  *
- * @param mixed $value строка с числом
+ * @param mixed $value число или строка с числом
  *
  * @return bool
  */
@@ -114,6 +114,22 @@ function isNotPositiveNumber($value)
 function isEmpty(string $value)
 {
     return $value == '';
+}
+
+/**
+ * Возвращает true если строка не соответствует формату email адреса
+ *
+ * @param string $value тестируемая строка
+ *
+ * @return bool
+ */
+function isNotEmail(string $value)
+{
+    if (filter_var($value, FILTER_VALIDATE_EMAIL)) {
+        return false;
+    } else {
+        return true;
+    }
 }
 
 /**
@@ -153,7 +169,7 @@ function isNotFutureDate(string $value)
 
 /**
  * Проверяет переданный методом POST файл на соответствие MIME типу, перемещает в указанную директорию и
- * возвращает путь к файлу если операция прошла успешно, и пустую строку в случае неудачи.
+ * возвращает путь к файлу если операция прошла успешно, или пустую строку в случае неудачи.
  *
  * @param string $uploading_name значение «name» в теге <input>
  * @param string $directories папка в которую будет перемещен файл в формате «/folder_name/»
@@ -180,14 +196,17 @@ function getImageFromForm(string $uploading_name, string $directories = '/img/')
 }
 
 /**
- * @param $bet_sanded
- * @param $not_less
+ * Возвращает true когда тестируемая ставка соответствует требованиям
+ *
+ * @param $bet_sent величена ставки
+ * @param $not_less ограничение по минимальной величине
+ *
  * @return bool
  */
-function isBetCorrect ($bet_sanded, $not_less)
+function isBetCorrect ($bet_sent, $not_less)
 {
-    if (!isNotPositiveNumber($bet_sanded)) {
-        if ($bet_sanded >= $not_less) {
+    if (!isNotPositiveNumber($bet_sent)) {
+        if ($bet_sent >= $not_less) {
             return true;
         }
     }
@@ -195,8 +214,11 @@ function isBetCorrect ($bet_sanded, $not_less)
 }
 
 /**
- * @param $_lot
- * @param $_bets
+ * Возвращает массив с текущей стоимостью лота и минимально допустимой величиной ставки
+ *
+ * @param array $_lot массив с данными по лоту
+ * @param array $_bets массив с данныи о ставках
+ *
  * @return mixed
  */
 function getBetAmounts($_lot, $_bets)
@@ -208,4 +230,23 @@ function getBetAmounts($_lot, $_bets)
         $bet_amount['current'] = $bet_amount['not_less'] = $_lot['price_origin'];
     }
     return $bet_amount;
+}
+
+/**
+ * Возвращает мссив с данными пользователя из массива пользователей по его email
+ * или пустой массив если пользователь не найден
+ *
+ * @param string $email адрес пользователя
+ * @param array $users массив пользователей
+ *
+ * @return array
+ */
+function getUser($email, $users)
+{
+    foreach ($users as $user) {
+        if ($user['email'] == $email) {
+            return $user;
+        }
+    }
+    return [];
 }
