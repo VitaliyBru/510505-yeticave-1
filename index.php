@@ -3,7 +3,6 @@ require_once 'functions.php';
 require_once 'artificial_bd.php';
 require_once 'authorization.php';
 
-
 // устанавливаем часовой пояс в Московское время
 date_default_timezone_set('Europe/Moscow');
 
