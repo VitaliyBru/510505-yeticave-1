@@ -19,9 +19,9 @@ USE `yeticave` ;
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `yeticave`.`categories` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `category` VARCHAR(254) NOT NULL,
+  `name` VARCHAR(254) NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE INDEX `category_UNIQUE` (`category` ASC))
+  UNIQUE INDEX `name_UNIQUE` (name ASC))
 ENGINE = InnoDB;
 
 

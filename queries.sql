@@ -41,16 +41,16 @@ VALUES
 
 /* получить список из всех категорий */
 SELECT
-  category
+  name
 FROM
   categories;
 
 /* получить самые новые, открытые лоты. Каждый лот должен включать название, стартовую цену, ссылку на изображение, цену, количество ставок, название категории */
 SELECT
-  name, price_origin, img_url, COALESCE(bet_price, price_origin) AS price, bet_count, category
+  name, price_origin, img_url, COALESCE(bet_price, price_origin) AS price, bet_count, categories.name
 FROM (
   SELECT
-    lots.id, name, price_origin, img_url, MAX(price) AS bet_price, COUNT(bets.lot_id) AS bet_count, category
+    lots.id, name, price_origin, img_url, MAX(price) AS bet_price, COUNT(bets.lot_id) AS bet_count, categories.name
   FROM
     (lots LEFT JOIN categories ON lots.category_id = categories.id) LEFT JOIN bets ON bets.lot_id = lots.id
   WHERE date_end > CURDATE()
