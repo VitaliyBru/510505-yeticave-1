@@ -2,6 +2,7 @@
 require_once 'functions.php';
 require_once  'artificial_bd.php';
 require_once 'authorization.php';
+require_once 'init.php';
 
 /** @var int $id идентификатор лота */
 $id = $_GET['id'] ?? null;

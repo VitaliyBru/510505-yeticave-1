@@ -250,3 +250,61 @@ function getUser($email, $users)
     }
     return [];
 }
+
+/**
+ * Возвращает массив категорий полученый от субд или
+ * пустой массив в случае не удачи.
+ *
+ * @param $_link Идентификатор соединения
+ *
+ * @return array|null
+ */
+function getCategories($_link)
+{
+    $query = 'SELECT * FROM categories';
+    $result_obj = mysqli_query($_link, $query);
+    $result = [];
+    if ($result_obj) {
+        $result = mysqli_fetch_all($result_obj, MYSQLI_ASSOC);
+    }
+    return $result;
+}
+
+/**
+ * Возвращает массив с кодом ошибки и ее описанием
+ *
+ * @param $_link Идентификатор соединения
+ *
+ * @return array
+ */
+function getMysqliError($_link)
+{
+    $error[] = mysqli_errno($_link);
+    $error[] = mysqli_error($_link);
+    return $error;
+}
+
+/**
+ * Выводит на экран текст описания возникшей ошибки
+ *
+ * @param array $_error массив с описанием ошибки полученый при помощи функции getMysqliError
+ */
+function showErrors($_error)
+{
+    $main_content = templateEngine(
+        'error',
+        [
+            'error' => $_error
+        ]
+    );
+    echo templateEngine(
+        'layout',
+        [
+            'title' => 'Ошибка',
+            'is_auth' => false,
+            'user_name' => '',
+            'user_avatar' => '',
+            'main_content' => $main_content
+        ]
+    );
+}

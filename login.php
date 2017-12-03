@@ -2,6 +2,8 @@
 require_once 'functions.php';
 require_once 'artificial_bd.php';
 require_once 'userdata.php';
+require_once 'authorization.php';
+require_once 'init.php';
 
 $is_auth = false;
 $user_name = null;

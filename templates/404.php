@@ -1,5 +1,7 @@
-<div>
+<section class="lot-item container">
     <h2>Ошибка 404</h2>
-    <p>Запрашиваемая страница отсутствует</p>
-    <a href="index.php">Вернутся на главную страницу</a>
-</div>
+    <div class="lot-item__content">
+        <p>Запрашиваемая страница отсутствует<br><a href="index.php">Вернутся на главную страницу</a></p>
+        <p></p>
+    </div>
+</section>
