@@ -1,77 +1,69 @@
 <?php
 require_once 'functions.php';
-require_once  'artificial_bd.php';
+require_once 'mysql_helper.php';
 require_once 'authorization.php';
 require_once 'init.php';
 
 /** @var int $id идентификатор лота */
-$id = $_GET['id'] ?? null;
-/** @var string $main_content содержит результат работы шаблонизатора */
-$main_content = null;
+$id = intval($_GET['id'] ?? null);
 /** @var bool $bet_done «true» когда ставка сделана*/
 $bet_done = false;
 
-if (array_key_exists($id, $lots)) {
-    $lot = $lots[$id];
-
-    //получить данные по ставкам
-    $my_bets = array();
-    if (isset($_COOKIE['my_bets'])) {
-        $my_bets = json_decode($_COOKIE['my_bets'], true);
+try {
+    /** @var array $lot список информации по лоту */
+    $lot = getOneLot($link, $id);
+    if (empty($lot)) {
+        mysqli_close($link);
+        http_response_code(404);
+        exit();
     }
-
-    //проверить есть ли моя ставка $bet_done = true
-    $bet_done = array_key_exists($id, $my_bets);
-    if ($bet_done) {
-        $tmp[] = $my_bets[$id];
-        foreach ($bets as $row) {
-            $tmp[] = $row;
-        }
-        $bets = $tmp;
-    }
-
+    /** @var array $categories список категорий */
+    $categories = getCategories($link);
+    /** @var array $bets список всех ставок сделанных на конкретный лот */
+    $bets = getBetsForLot($link, $id);
+    /** @var array $bet_amounts минимально возможная ставка «not_less» и текущая стоимость лота «current» */
     $bet_amounts = getBetAmounts($lot, $bets);
-    $bet_forbidden = ($bet_done or !$is_auth);
+    /** @var bool $bet_done пользователь уже делал ставку на этотом лоте */
+    $bet_done = in_array($user_id, array_column($bets, 'user_id'));
+    /** @var bool $bet_forbidden true когда пользователю запрещено делать ставку */
+    $bet_forbidden = ($bet_done or !$is_auth or ($lot['author_id'] == $user_id));
 
-    if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$bet_forbidden) {
+    if ($_SERVER['REQUEST_METHOD'] == 'POST' || !$bet_forbidden) {
         $bet_sent = null;
         if (isset($_POST['cost'])) {
             $bet_sent = $_POST['cost'];
         }
         if (isBetCorrect($bet_sent, $bet_amounts['not_less'])) {
+            /** @var array $bet ставка пользователя */
             $bet = [
-                'name' => $user_name, //после подключения бд заменить на user_id
-                'price' => $bet_sent,
-                'lot_id' => $id,
-                'ts' => strtotime('now')
+                'user_id' => $user_id,
+                'price' => (int)$bet_sent,
+                'lot_id' => $id
             ];
 
-            // заменить на работу с бд
-            $my_bets[$id] = $bet;
-            $my_bets_json = json_encode($my_bets);
-            setcookie('my_bets', $my_bets_json);
-
-            header('Location: /my-lots.php');
+            if (setInTable($link, $bet, 'bets')) {
+                header('Location: /my-lots.php');
+            }
         }
     }
-
-
-    $main_content = templateEngine(
-        'lot',
-        [
-            'categories' => $categories,
-            'lot' => $lot,
-            'bets' => $bets,
-            'bet_amounts' => $bet_amounts,
-            'bet_forbidden' => $bet_forbidden
-        ]
-    );
-} else {
-    $lot['name'] = 'Ошибка 404';
-    header("HTTP/1.1 404 Not Found");
-    $main_content = templateEngine('404', []);
+} catch (Exception $e) {
+    mysqli_close($link);
+    showErrors($e);
+    exit();
 }
 
+$nav_panel = templateEngine('nav_panel', ['categories' => $categories]);
+/** @var string $main_content содержит результат работы шаблонизатора */
+$main_content = templateEngine(
+    'lot',
+    [
+        'nav_panel' => $nav_panel,
+        'lot' => $lot,
+        'bets' => $bets,
+        'bet_amounts' => $bet_amounts,
+        'bet_forbidden' => $bet_forbidden
+    ]
+);
 echo templateEngine(
     'layout',
     [
@@ -79,7 +71,7 @@ echo templateEngine(
         'is_auth' => $is_auth,
         'user_name' => $user_name,
         'user_avatar' => $user_avatar,
-        'categories' => $categories,
+        'nav_panel' => $nav_panel,
         'main_content' => $main_content
     ]
 );
