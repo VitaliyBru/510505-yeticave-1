@@ -7,10 +7,13 @@
  * @param $sql string SQL запрос с плейсхолдерами вместо значений
  * @param array $data Данные для вставки на место плейсхолдеров
  *
+ * @throws Exception
  * @return mysqli_stmt Подготовленное выражение
  */
 function db_get_prepare_stmt($link, $sql, $data = []) {
-    $stmt = mysqli_prepare($link, $sql);
+    if (!$stmt = mysqli_prepare($link, $sql)) {
+        throw new Exception(mysqli_error($link), mysqli_errno($link));
+    }
 
     if ($data) {
         $types = '';

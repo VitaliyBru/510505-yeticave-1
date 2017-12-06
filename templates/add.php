@@ -1,12 +1,4 @@
-<nav class="nav">
-    <ul class="nav__list container">
-        <?php foreach ($categories as $category): ?>
-            <li class="nav__item">
-                <a href="<?="index.php?id={$category['id']}"; ?>"><?=$category['name']; ?></a>
-            </li>
-        <?php endforeach; ?>
-    </ul>
-</nav>
+<?=$nav_panel; ?>
 <form class="form form--add-lot container <?= $errors['form'] ? 'form--invalid' : ''; ?>" action="add.php" method="post" enctype="multipart/form-data"> <!-- form--invalid -->
     <h2>Добавление лота</h2>
     <div class="form__container-two">
@@ -15,12 +7,12 @@
             <input id="lot-name" type="text" name="lot[name]" value="<?=secure($lot['name']); ?>" placeholder="Введите наименование лота" required>
             <span class="form__error">Введите наименование лота</span>
         </div>
-        <div class="form__item <?= $errors['category'] ? 'form__item--invalid' : ''; ?>">
+        <div class="form__item <?= $errors['category_id'] ? 'form__item--invalid' : ''; ?>">
             <label for="category">Категория</label>
-            <select id="category" name="lot[category]" required>
+            <select id="category" name="lot[category_id]" required>
                 <option>Выберите категорию</option>
                 <?php foreach ($categories as $category): ?>
-                    <option<?= ($lot['category'] == $category['name']) ? ' selected' : ''; ?>><?=$category['name']; ?></option>
+                    <option value="<?=$category['id']; ?>"<?= ($lot['category_id'] == $category['id']) ? ' selected' : ''; ?>><?=$category['name']; ?></option>
                 <?php endforeach; ?>
             </select>
             <span class="form__error">Выберите категорию</span>

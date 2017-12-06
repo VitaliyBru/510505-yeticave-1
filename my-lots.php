@@ -11,22 +11,26 @@ if (!$is_auth) {
 // устанавливаем часовой пояс в Московское время
 date_default_timezone_set('Europe/Moscow');
 
-$lots_with_my_bets = null;
+try {
+    // получаем из бд список категорий
+    /** @var array $categories список категорий */
+    $categories = getCategories($link);
 
-if (isset($_COOKIE['my_bets'])) {
-    $my_bets = json_decode($_COOKIE['my_bets'], true);
-    foreach ($my_bets as $bet) {
-        unset($bet['name']);
-        $lots_with_my_bets[] = array_merge($lots[$bet['lot_id']], $bet);
-        $lots_with_my_bets = array_reverse($lots_with_my_bets);
-    }
+    // получаем лоты на которые пользователь делал ставки и его ставки
+    /** @var array $lots_with_my_bets список лотов со ставками пользователя и его ставки */
+    $lots_with_my_bets = getLotsWithUsersBets($link, $user_id);
+} catch (Exception $e) {
+    mysqli_close($link);
+    showErrors($e);
+    exit();
 }
 
-if (isset($lots_with_my_bets)) {
+$nav_panel = templateEngine('nav_panel', ['categories' => $categories]);
+if (!empty($lots_with_my_bets)) {
     $main_content = templateEngine(
         'my-lots',
         [
-            'categories' => $categories,
+            'nav_panel' => $nav_panel,
             'lots_with_my_bets' => $lots_with_my_bets
         ]
     );
@@ -40,7 +44,7 @@ echo templateEngine(
         'is_auth' => $is_auth,
         'user_name' => $user_name,
         'user_avatar' => $user_avatar,
-        'categories' => $categories,
+        'nav_panel' => $nav_panel,
         'main_content' => $main_content
     ]
 );

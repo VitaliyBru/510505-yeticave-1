@@ -1,12 +1,4 @@
-<nav class="nav">
-    <ul class="nav__list container">
-        <?php foreach ($categories as $category): ?>
-            <li class="nav__item">
-                <a href="<?="index.php?id={$category['id']}"; ?>"><?=$category['name']; ?></a>
-            </li>
-        <?php endforeach; ?>
-    </ul>
-</nav>
+<?=$nav_panel; ?>
 <section class="lot-item container">
     <h2><?=secure($lot['name']); ?></h2>
     <div class="lot-item__content">
@@ -20,7 +12,7 @@
         <div class="lot-item__right">
             <div class="lot-item__state"<?=$bet_forbidden ? ' style="visibility:hidden;"' : ''; ?>>
                 <div class="lot-item__timer timer">
-                    <?=lotTimeRemaining(); ?>
+                    <?=lotTimeRemaining($lot['date_end']); ?>
                 </div>
                 <div class="lot-item__cost-state">
                     <div class="lot-item__rate">
@@ -34,7 +26,7 @@
                 <form class="lot-item__form" action="lot.php?id=<?=$lot['id']; ?>" method="post">
                     <p class="lot-item__form-item">
                         <label for="cost">Ваша ставка</label>
-                        <input id="cost" type="number" name="cost" placeholder="<?=$bet_amounts['not_less']; ?>">
+                        <input id="cost" type="number" name="cost" placeholder="<?=$bet_amounts['not_less']; ?>" min="<?=$bet_amounts['not_less']; ?>">
                     </p>
                     <button type="submit" class="button">Сделать ставку</button>
                 </form>
