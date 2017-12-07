@@ -38,3 +38,4 @@
         <?php endforeach; ?>
     </ul>
 </section>
+<?=$pagination_content;?>

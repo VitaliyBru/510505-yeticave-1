@@ -358,14 +358,17 @@ function showErrors(Exception $_error)
  * Возвращает список активных лотов
  *
  * @param mysqli $_link Идентификатор соединения
+ * @param int $offset Смещение в выдаче лотов для пагинации
+ * @param int $limit Максимальое количество лотов на страницу для пагинации
  *
  * @return array|null
  * @throws Exception
  */
-function getActiveLots(mysqli $_link)
+function getActiveLots(mysqli $_link, int $offset = 0, int $limit = 3)
 {
     $query = "
 SELECT 
+  SQL_CALC_FOUND_ROWS
   lots.id AS id, 
   lots.name AS name, 
   description, 
@@ -378,6 +381,7 @@ FROM
 WHERE 
   date_end > CURRENT_DATE
 ORDER BY lots.id DESC
+LIMIT $limit OFFSET $offset
 ";
     try {
         $lots = mysqli_query_fetch_all($_link, $query);
@@ -540,7 +544,32 @@ function setInTable(mysqli $_link, array $column_data, string $table_name)
     return mysqli_stmt_insert_id($stmt);
 }
 
-
+/**
+ * Возвращает колличество строк найденных функцией getActiveLots()
+ *
+ * @param $_link Идентификатор соединения
+ *
+ * @return int
+ * @throws Exception
+ */
+function getTotalNumberFoundRows($_link)
+{
+    $query = "
+    SELECT FOUND_ROWS()
+    ";
+    $result_obj = mysqli_query($_link, $query);
+    $result[] = -1;
+    if ($result_obj) {
+        $result = mysqli_fetch_row($result_obj);
+    }
+    if (mysqli_errno($_link)) {
+        throw new Exception(mysqli_error($_link), mysqli_errno($_link));
+    }
+    if ($result[0] == -1) {
+        throw new Exception("Неизвестная ошибка: не удалось получить количество найденных записей");
+    }
+    return (int) $result[0];
+}
 
 
 

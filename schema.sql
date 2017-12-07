@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS `yeticave`.`lots` (
   INDEX `fk_lots_users1_idx` (`winner_id` ASC),
   INDEX `fk_lots_users2_idx` (`author_id` ASC),
   FULLTEXT INDEX `name_idx` (`name` ASC),
-  FULLTEXT INDEX `description_idx` (`description`(767) ASC),
+  FULLTEXT INDEX `description_idx` (`description` ASC),
   INDEX `date_end_idx` (`date_end` DESC),
   CONSTRAINT `fk_lots_categories`
     FOREIGN KEY (`category_id`)
