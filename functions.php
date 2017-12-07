@@ -547,12 +547,12 @@ function setInTable(mysqli $_link, array $column_data, string $table_name)
 /**
  * Возвращает колличество строк найденных функцией getActiveLots()
  *
- * @param $_link Идентификатор соединения
+ * @param mysqli $_link Идентификатор соединения
  *
  * @return int
  * @throws Exception
  */
-function getTotalNumberFoundRows($_link)
+function getTotalNumberFoundRows(mysqli $_link)
 {
     $query = "
     SELECT FOUND_ROWS()
@@ -569,6 +569,65 @@ function getTotalNumberFoundRows($_link)
         throw new Exception("Неизвестная ошибка: не удалось получить количество найденных записей");
     }
     return (int) $result[0];
+}
+
+/**
+ * Возвращает список лотов по поисковому запросу в режиме FULLTEXT
+ *
+ * @param mysqli $_link Идентификатор соединения
+ * @param int $offset Смещение в выдаче лотов для пагинации
+ * @param int $limit Максимальое количество лотов на страницу для пагинации
+ * @param string $search техт поискового запроса
+ *
+ * @return array
+ * @throws Exception
+ */
+function getFoundLots(mysqli $_link, int $offset = 0, int $limit = 3, string $search)
+{
+    /** @var string $query sql запрос на пролучение данных из бд */
+    $query = "
+    SELECT SQL_CALC_FOUND_ROWS 
+      lots.id AS id, 
+      lots.name AS name,
+      price_origin,
+      img_url,
+      UNIX_TIMESTAMP(date_end) AS date_end,
+      categories.name AS category
+    FROM
+      lots LEFT JOIN categories ON lots.category_id = categories.id
+    WHERE 
+      date_end > CURRENT_DATE
+      AND 
+      MATCH(lots.name, description) AGAINST(? IN BOOLEAN MODE)
+    ORDER BY lots.id DESC
+    LIMIT $limit OFFSET $offset
+";
+    try {
+        $stmt = db_get_prepare_stmt($_link, $query, [$search]);
+    } catch (Exception $e) {
+        throw new Exception($e->getMessage(), $e->getCode());
+    }
+    mysqli_stmt_execute($stmt);
+    if (mysqli_stmt_errno($stmt)) {
+        throw new Exception(mysqli_stmt_error($stmt), mysqli_stmt_errno($stmt));
+    }
+    $anchor = array();
+    $data = array();
+    $meta = mysqli_stmt_result_metadata($stmt);
+    while ($field = mysqli_fetch_field($meta)) {
+        $anchor[] = &$data[$field->name];
+    }
+    $value = array_merge([$stmt], $anchor);
+    call_user_func_array('mysqli_stmt_bind_result', $value);
+    $lots = array();
+    $i = 0;
+    while (mysqli_stmt_fetch($stmt)) {
+        foreach ($data as $col => $datum ) {
+            $lots[$i][$col] = $datum;
+        }
+        $i++;
+    }
+    return $lots;
 }
 
 
