@@ -688,7 +688,15 @@ function getCategoryName(int $category_id, $categories = [])
     return null;
 }
 
-function getBetsOnClosedLotsWithoutWinner($_link)
+/**
+ * Возвращает список ставок на лоты по окончии торгов
+ *
+ * @param mysqli $_link Идентификатор соединения
+ *
+ * @return array|null
+ * @throws Exception
+ */
+function getBetsOnClosedLotsWithoutWinner(mysqli $_link)
 {
     $query = "
     SELECT
@@ -712,6 +720,13 @@ function getBetsOnClosedLotsWithoutWinner($_link)
     return $bets;
 }
 
+/**
+ * Возвращает список выигравших ставок
+ *
+ * @param array $_bets список ставок
+ *
+ * @return array
+ */
 function getListWinnerBets($_bets)
 {
     $bet_winner = [];
@@ -727,7 +742,17 @@ function getListWinnerBets($_bets)
     return $bet_winner;
 }
 
-function setWinnerId($_link, $_user_id, $_lot_id)
+/**
+ * Записывает в таблицу лота победившего пользователя
+ *
+ * @param mysqli $_link Идентификатор соединения
+ * @param int $_user_id номер пользователя в бд
+ * @param int $_lot_id номер лота в бд
+ *
+ * @return bool
+ * @throws Exception
+ */
+function setWinnerId(mysqli $_link, int $_user_id, int $_lot_id)
 {
     $query = "UPDATE `yeticave`.`lots` SET `winner_id` = $_user_id WHERE  `id` = $_lot_id";
     $data = [];
@@ -743,7 +768,42 @@ function setWinnerId($_link, $_user_id, $_lot_id)
     return $success;
 }
 
-
+/**
+ * Возвращает данные о пользователе по его идентификационному номеру
+ *
+ * @param mysqli $_link Идентификатор соединения
+ * @param int $_user_id номер пользователя в бд
+ *
+ * @return array
+ * @throws Exception
+ */
+function getUserFromId(mysqli $_link, int $_user_id)
+{
+    /** @var string $query sql запрос на пролучение данных из бд */
+    $query = "
+    SELECT
+      name, 
+      email
+    FROM
+      users
+    WHERE 
+      id = ?";
+    try {
+        $stmt = db_get_prepare_stmt($_link, $query, [$_user_id]);
+    } catch (Exception $e) {
+        throw new Exception($e->getMessage(), $e->getCode());
+    }
+    mysqli_stmt_execute($stmt);
+    if (mysqli_stmt_errno($stmt)) {
+        throw new Exception(mysqli_stmt_error($stmt), mysqli_stmt_errno($stmt));
+    }
+    $user = ['name' => '', 'email' => ''];
+    mysqli_stmt_bind_result($stmt, $user['name'], $user['email']);
+    if (mysqli_stmt_fetch($stmt)) {
+        return $user;
+    }
+    return [];
+}
 
 
 

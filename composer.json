@@ -1,0 +1,7 @@
+{
+    "name": "vitaliy/yeticave",
+    "type": "library",
+    "require": {
+        "swiftmailer/swiftmailer": "^6.0"
+    }
+}
