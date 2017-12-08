@@ -547,12 +547,12 @@ function setInTable(mysqli $_link, array $column_data, string $table_name)
 /**
  * Возвращает колличество строк найденных функцией getActiveLots()
  *
- * @param $_link Идентификатор соединения
+ * @param mysqli $_link Идентификатор соединения
  *
  * @return int
  * @throws Exception
  */
-function getTotalNumberFoundRows($_link)
+function getTotalNumberFoundRows(mysqli $_link)
 {
     $query = "
     SELECT FOUND_ROWS()
@@ -571,13 +571,239 @@ function getTotalNumberFoundRows($_link)
     return (int) $result[0];
 }
 
+/**
+ * Возвращает список лотов по поисковому запросу в режиме FULLTEXT
+ *
+ * @param mysqli $_link Идентификатор соединения
+ * @param int $offset Смещение в выдаче лотов для пагинации
+ * @param int $limit Максимальое количество лотов на страницу для пагинации
+ * @param string $search техт поискового запроса
+ *
+ * @return array
+ * @throws Exception
+ */
+function getFoundLots(mysqli $_link, int $offset = 0, int $limit = 3, string $search)
+{
+    /** @var string $query sql запрос на пролучение данных из бд */
+    $query = "
+    SELECT SQL_CALC_FOUND_ROWS 
+      lots.id AS id, 
+      lots.name AS name,
+      price_origin,
+      img_url,
+      UNIX_TIMESTAMP(date_end) AS date_end,
+      categories.name AS category
+    FROM
+      lots LEFT JOIN categories ON lots.category_id = categories.id
+    WHERE 
+      date_end > CURRENT_DATE
+      AND 
+      MATCH(lots.name, description) AGAINST(? IN BOOLEAN MODE)
+    ORDER BY lots.id DESC
+    LIMIT $limit OFFSET $offset
+";
+    try {
+        $stmt = db_get_prepare_stmt($_link, $query, [$search]);
+    } catch (Exception $e) {
+        throw new Exception($e->getMessage(), $e->getCode());
+    }
+    mysqli_stmt_execute($stmt);
+    if (mysqli_stmt_errno($stmt)) {
+        throw new Exception(mysqli_stmt_error($stmt), mysqli_stmt_errno($stmt));
+    }
+    $anchor = array();
+    $data = array();
+    $meta = mysqli_stmt_result_metadata($stmt);
+    while ($field = mysqli_fetch_field($meta)) {
+        $anchor[] = &$data[$field->name];
+    }
+    $value = array_merge([$stmt], $anchor);
+    call_user_func_array('mysqli_stmt_bind_result', $value);
+    $lots = array();
+    $i = 0;
+    while (mysqli_stmt_fetch($stmt)) {
+        foreach ($data as $col => $datum ) {
+            $lots[$i][$col] = $datum;
+        }
+        $i++;
+    }
+    return $lots;
+}
 
+/**
+ * Возвращает список активных лотов в выбранной категории
+ *
+ * @param mysqli $_link Идентификатор соединения
+ * @param int $offset Смещение в выдаче лотов для пагинации
+ * @param int $limit Максимальое количество лотов на страницу для пагинации
+ * @param int $category_id идентификационный номер категории
+ *
+ * @return array|null
+ * @throws Exception
+ */
+function getActiveLotsFromCategory(mysqli $_link, int $offset = 0, int $limit = 3, int $category_id)
+{
+    $query = "
+SELECT 
+  SQL_CALC_FOUND_ROWS
+  lots.id AS id, 
+  lots.name AS name, 
+  description, 
+  price_origin, 
+  UNIX_TIMESTAMP(date_end) AS date_end, 
+  categories.name AS category, 
+  img_url
+FROM 
+  lots LEFT JOIN categories ON lots.category_id = categories.id 
+WHERE 
+  date_end > CURRENT_DATE
+  AND 
+  category_id = $category_id
+ORDER BY lots.id DESC
+LIMIT $limit OFFSET $offset
+";
+    try {
+        $lots = mysqli_query_fetch_all($_link, $query);
+    } catch (Exception $e) {
+        Throw new Exception($e->getMessage(), $e->getCode());
+    }
+    return $lots;
+}
 
+/**
+ * Возвращает наименование категории по ее id номеру
+ *
+ * @param int $category_id идентификационный номер категории
+ * @param array $categories массив категорий
+ *
+ * @return null|string
+ */
+function getCategoryName(int $category_id, $categories = [])
+{
+    foreach ($categories as $row) {
+        if ($row['id'] = $category_id) {
+            return $row['name'];
+        }
+    }
+    return null;
+}
 
+/**
+ * Возвращает список ставок на лоты по окончии торгов
+ *
+ * @param mysqli $_link Идентификатор соединения
+ *
+ * @return array|null
+ * @throws Exception
+ */
+function getBetsOnClosedLotsWithoutWinner(mysqli $_link)
+{
+    $query = "
+    SELECT
+      lot_id,
+      price,
+      user_id
+    FROM
+      bets
+    LEFT JOIN lots ON bets.lot_id = lots.id
+    WHERE 
+     winner_id IS NULL 
+     AND 
+     date_end <= CURDATE()
+    ORDER BY lots.id, price DESC 
+     ";
+    try {
+        $bets = mysqli_query_fetch_all($_link, $query);
+    } catch (Exception $e) {
+        Throw new Exception($e->getMessage(), $e->getCode());
+    }
+    return $bets;
+}
 
+/**
+ * Возвращает список выигравших ставок
+ *
+ * @param array $_bets список ставок
+ *
+ * @return array
+ */
+function getListWinnerBets($_bets)
+{
+    $bet_winner = [];
+    foreach ($_bets as $bet) {
+        $lot_id = $bet['lot_id'];
+        if (!isset($bet_winner[$lot_id])) {
+            $bet_winner[$lot_id] = $bet;
+        }
+        if ($bet_winner[$lot_id]['price'] < $bet['price']) {
+            $bet_winner[$lot_id] = $bet;
+        }
+    }
+    return $bet_winner;
+}
 
+/**
+ * Записывает в таблицу лота победившего пользователя
+ *
+ * @param mysqli $_link Идентификатор соединения
+ * @param int $_user_id номер пользователя в бд
+ * @param int $_lot_id номер лота в бд
+ *
+ * @return bool
+ * @throws Exception
+ */
+function setWinnerId(mysqli $_link, int $_user_id, int $_lot_id)
+{
+    $query = "UPDATE `yeticave`.`lots` SET `winner_id` = $_user_id WHERE  `id` = $_lot_id";
+    $data = [];
+    try {
+        $stmt = db_get_prepare_stmt($_link, $query, $data);
+    } catch (Exception $e) {
+        throw new Exception("Ошибка: " . $e->getMessage(), $e->getCode());
+    }
+    $success = mysqli_stmt_execute($stmt);
+    if (mysqli_stmt_errno($stmt)) {
+        throw new Exception("Ошибка: " . mysqli_stmt_error($stmt), mysqli_stmt_errno($stmt));
+    }
+    return $success;
+}
 
-
+/**
+ * Возвращает данные о пользователе по его идентификационному номеру
+ *
+ * @param mysqli $_link Идентификатор соединения
+ * @param int $_user_id номер пользователя в бд
+ *
+ * @return array
+ * @throws Exception
+ */
+function getUserFromId(mysqli $_link, int $_user_id)
+{
+    /** @var string $query sql запрос на пролучение данных из бд */
+    $query = "
+    SELECT
+      name, 
+      email
+    FROM
+      users
+    WHERE 
+      id = ?";
+    try {
+        $stmt = db_get_prepare_stmt($_link, $query, [$_user_id]);
+    } catch (Exception $e) {
+        throw new Exception($e->getMessage(), $e->getCode());
+    }
+    mysqli_stmt_execute($stmt);
+    if (mysqli_stmt_errno($stmt)) {
+        throw new Exception(mysqli_stmt_error($stmt), mysqli_stmt_errno($stmt));
+    }
+    $user = ['name' => '', 'email' => ''];
+    mysqli_stmt_bind_result($stmt, $user['name'], $user['email']);
+    if (mysqli_stmt_fetch($stmt)) {
+        return $user;
+    }
+    return [];
+}
 
 
 

@@ -1,11 +1,8 @@
 <?php
 require_once 'functions.php';
+require_once 'mysql_helper.php';
 require_once 'authorization.php';
 require_once 'init.php';
-require_once 'getwinner.php';
-
-// устанавливаем часовой пояс в Московское время
-date_default_timezone_set('Europe/Moscow');
 
 /** @var int $limit отображаемое колличество лотов на странице */
 $limit = 3;
@@ -13,16 +10,22 @@ $limit = 3;
 $pagination['currant'] = intval($_GET['p'] ?? 1);
 /** @var int $offset смещение в выдаче результатов поиска */
 $offset = ($pagination['currant'] - 1) * $limit;
+/** @var string $search поисковый запрос */
+$search = trim($_GET['search'] ?? '');
 
 try {
     // получаем из бд список категорий
     /** @var array $categories список категорий*/
     $categories = getCategories($link);
-
-    // получаем из бд список активных лотов
-    /** @var array $lots список лотов*/
-    $lots = getActiveLots($link, $offset, $limit);
-    $total_lots = getTotalNumberFoundRows($link);
+    if ($search) {
+        // получаем из бд список активных лотов
+        /** @var array $lots список лотов */
+        $lots = getFoundLots($link, $offset, $limit, $search);
+        $total_lots = getTotalNumberFoundRows($link);
+    } else {
+        $lots = array();
+        $total_lots = 0;
+    }
 } catch (Exception $e) {
     mysqli_close($link);
     showErrors($e);
@@ -33,9 +36,9 @@ mysqli_close($link);
 // если контента больше чем для вывода на одну страницу, реализуем постраничный вывод
 if ($total_lots > $limit) {
     if (empty($lots)) {
-        header("Location: /index.php");
+        header("Location: /search.php?search={$search}&p=1");
     }
-    $pagination['goto'] = "index.php?p=";
+    $pagination['goto'] = "search.php?search={$search}&p=";
     $total_pages = intval(ceil($total_lots / $limit));
     $pagination['pages'] = range(1, $total_pages);
     $pagination['next'] = ($pagination['currant'] == $total_pages) ? false : ($pagination['currant'] + 1);
@@ -49,9 +52,9 @@ if ($total_lots > $limit) {
 
 /** @var string $main_content содержит результат работы шаблонизатора */
 $main_content = templateEngine(
-    'index',
+    'search',
     [
-        'categories' => $categories,
+        'search' => $search,
         'lots' => $lots,
         'pagination_content' => $pagination_content
     ]
@@ -61,7 +64,7 @@ $nav_panel = templateEngine('nav_panel', ['categories' => $categories]);
 echo templateEngine(
     'layout',
     [
-        'title' => 'Главная',
+        'title' => 'Результаты поиска',
         'is_auth' => $is_auth,
         'user_name' => $user_name,
         'user_avatar' => $user_avatar,

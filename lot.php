@@ -67,7 +67,7 @@ $main_content = templateEngine(
 echo templateEngine(
     'layout',
     [
-        'title' => $lot['name'],
+        'title' => secure($lot['name']),
         'is_auth' => $is_auth,
         'user_name' => $user_name,
         'user_avatar' => $user_avatar,
