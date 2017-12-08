@@ -12,6 +12,7 @@ $limit = 3;
 $pagination['currant'] = intval($_GET['p'] ?? 1);
 /** @var int $offset смещение в выдаче результатов поиска */
 $offset = ($pagination['currant'] - 1) * $limit;
+/** @var int $id идентификационный номер категории */
 $id = intval($_GET['id'] ?? 0);
 
 try {

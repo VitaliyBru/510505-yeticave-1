@@ -2,6 +2,7 @@
 require_once 'functions.php';
 require_once 'authorization.php';
 require_once 'init.php';
+require_once 'determine_a_winner.php';
 
 // устанавливаем часовой пояс в Московское время
 date_default_timezone_set('Europe/Moscow');

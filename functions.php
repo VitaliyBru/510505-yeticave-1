@@ -688,9 +688,60 @@ function getCategoryName(int $category_id, $categories = [])
     return null;
 }
 
+function getBetsOnClosedLotsWithoutWinner($_link)
+{
+    $query = "
+    SELECT
+      lot_id,
+      price,
+      user_id
+    FROM
+      bets
+    LEFT JOIN lots ON bets.lot_id = lots.id
+    WHERE 
+     winner_id IS NULL 
+     AND 
+     date_end <= CURDATE()
+    ORDER BY lots.id, price DESC 
+     ";
+    try {
+        $bets = mysqli_query_fetch_all($_link, $query);
+    } catch (Exception $e) {
+        Throw new Exception($e->getMessage(), $e->getCode());
+    }
+    return $bets;
+}
 
+function getListWinnerBets($_bets)
+{
+    $bet_winner = [];
+    foreach ($_bets as $bet) {
+        $lot_id = $bet['lot_id'];
+        if (!isset($bet_winner[$lot_id])) {
+            $bet_winner[$lot_id] = $bet;
+        }
+        if ($bet_winner[$lot_id]['price'] < $bet['price']) {
+            $bet_winner[$lot_id] = $bet;
+        }
+    }
+    return $bet_winner;
+}
 
-
+function setWinnerId($_link, $_user_id, $_lot_id)
+{
+    $query = "UPDATE `yeticave`.`lots` SET `winner_id` = $_user_id WHERE  `id` = $_lot_id";
+    $data = [];
+    try {
+        $stmt = db_get_prepare_stmt($_link, $query, $data);
+    } catch (Exception $e) {
+        throw new Exception("Ошибка: " . $e->getMessage(), $e->getCode());
+    }
+    $success = mysqli_stmt_execute($stmt);
+    if (mysqli_stmt_errno($stmt)) {
+        throw new Exception("Ошибка: " . mysqli_stmt_error($stmt), mysqli_stmt_errno($stmt));
+    }
+    return $success;
+}
 
 
 
