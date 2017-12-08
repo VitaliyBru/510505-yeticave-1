@@ -630,7 +630,63 @@ function getFoundLots(mysqli $_link, int $offset = 0, int $limit = 3, string $se
     return $lots;
 }
 
+/**
+ * Возвращает список активных лотов в выбранной категории
+ *
+ * @param mysqli $_link Идентификатор соединения
+ * @param int $offset Смещение в выдаче лотов для пагинации
+ * @param int $limit Максимальое количество лотов на страницу для пагинации
+ * @param int $category_id идентификационный номер категории
+ *
+ * @return array|null
+ * @throws Exception
+ */
+function getActiveLotsFromCategory(mysqli $_link, int $offset = 0, int $limit = 3, int $category_id)
+{
+    $query = "
+SELECT 
+  SQL_CALC_FOUND_ROWS
+  lots.id AS id, 
+  lots.name AS name, 
+  description, 
+  price_origin, 
+  UNIX_TIMESTAMP(date_end) AS date_end, 
+  categories.name AS category, 
+  img_url
+FROM 
+  lots LEFT JOIN categories ON lots.category_id = categories.id 
+WHERE 
+  date_end > CURRENT_DATE
+  AND 
+  category_id = $category_id
+ORDER BY lots.id DESC
+LIMIT $limit OFFSET $offset
+";
+    try {
+        $lots = mysqli_query_fetch_all($_link, $query);
+    } catch (Exception $e) {
+        Throw new Exception($e->getMessage(), $e->getCode());
+    }
+    return $lots;
+}
 
+/**
+ * Возвращает наименование категории по ее id номеру
+ *
+ * @param int $category_id идентификационный номер категории
+ * @param array $categories массив категорий
+ *
+ * @return null|string
+ */
+function getCategoryName(int $category_id, $categories = [])
+{
+    foreach ($categories as $row) {
+        if ($row['id'] = $category_id) {
+            return $row['name'];
+        }
+    }
+    return null;
+}
 
 
 

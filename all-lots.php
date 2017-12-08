@@ -1,8 +1,10 @@
 <?php
 require_once 'functions.php';
-require_once 'mysql_helper.php';
 require_once 'authorization.php';
 require_once 'init.php';
+
+// устанавливаем часовой пояс в Московское время
+date_default_timezone_set('Europe/Moscow');
 
 /** @var int $limit отображаемое колличество лотов на странице */
 $limit = 3;
@@ -10,22 +12,21 @@ $limit = 3;
 $pagination['currant'] = intval($_GET['p'] ?? 1);
 /** @var int $offset смещение в выдаче результатов поиска */
 $offset = ($pagination['currant'] - 1) * $limit;
-/** @var string $search поисковый запрос */
-$search = trim($_GET['search'] ?? '');
+$id = intval($_GET['id'] ?? 0);
 
 try {
     // получаем из бд список категорий
     /** @var array $categories список категорий*/
     $categories = getCategories($link);
-    if ($search) {
-        // получаем из бд список активных лотов
-        /** @var array $lots список лотов */
-        $lots = getFoundLots($link, $offset, $limit, $search);
-        $total_lots = getTotalNumberFoundRows($link);
-    } else {
-        $lots = array();
-        $total_lots = 0;
+    if (!in_array($id, array_column($categories, 'id'))) {
+        http_response_code(404);
+        exit();
     }
+
+    // получаем из бд список активных лотов
+    /** @var array $lots список лотов*/
+    $lots = getActiveLotsFromCategory($link, $offset, $limit, $id);
+    $total_lots = getTotalNumberFoundRows($link);
 } catch (Exception $e) {
     mysqli_close($link);
     showErrors($e);
@@ -36,9 +37,9 @@ mysqli_close($link);
 // если контента больше чем для вывода на одну страницу, реализуем постраничный вывод
 if ($total_lots > $limit) {
     if (empty($lots)) {
-        header("Location: /search.php?search={$search}&p=1");
+        header("Location: /all-lots.php?id={$id}&p=1");
     }
-    $pagination['goto'] = "search.php?search={$search}&p=";
+    $pagination['goto'] = "all-lots.php?id={$id}&p=";
     $total_pages = intval(ceil($total_lots / $limit));
     $pagination['pages'] = range(1, $total_pages);
     $pagination['next'] = ($pagination['currant'] == $total_pages) ? false : ($pagination['currant'] + 1);
@@ -50,11 +51,13 @@ if ($total_lots > $limit) {
     $pagination_content = '';
 }
 
+$category = getCategoryName($id, $categories);
+
 /** @var string $main_content содержит результат работы шаблонизатора */
 $main_content = templateEngine(
-    'search',
+    'all-lots',
     [
-        'search' => $search,
+        'category' => $category,
         'lots' => $lots,
         'pagination_content' => $pagination_content
     ]
@@ -64,7 +67,7 @@ $nav_panel = templateEngine('nav_panel', ['categories' => $categories]);
 echo templateEngine(
     'layout',
     [
-        'title' => 'Результаты поиска',
+        'title' => 'Все лоты',
         'is_auth' => $is_auth,
         'user_name' => $user_name,
         'user_avatar' => $user_avatar,
