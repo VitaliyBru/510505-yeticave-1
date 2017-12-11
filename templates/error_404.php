@@ -42,11 +42,15 @@
         </nav>
     </div>
 </header>
-
-<?=$main_content; ?>
-
+<main class="container">
+    <div class="lot-item__content">
+        <div class="lot-item__left">
+            <h2 style="text-align: center;">Ошибка 404</h2>
+            <p style="text-align: center;">Запрашиваемая страница не найдена. <a href="index.php">Вернуться на главную</a></p>
+        </div>
+    </div>
+</main>
 <footer class="main-footer">
-    <?= isset($nav_panel) ? $nav_panel : ''; ?>
     <div class="main-footer__bottom container">
         <div class="main-footer__copyright">
             <p>© 2017, YetiCave</p>

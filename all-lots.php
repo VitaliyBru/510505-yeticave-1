@@ -1,5 +1,6 @@
 <?php
 require_once 'functions.php';
+require_once 'mysql_helper.php';
 require_once 'authorization.php';
 require_once 'init.php';
 
@@ -20,7 +21,7 @@ try {
     /** @var array $categories список категорий*/
     $categories = getCategories($link);
     if (!in_array($id, array_column($categories, 'id'))) {
-        http_response_code(404);
+        header("Location: /error_404.php", true, 404);
         exit();
     }
 
@@ -43,8 +44,8 @@ if ($total_lots > $limit) {
     $pagination['goto'] = "all-lots.php?id={$id}&p=";
     $total_pages = intval(ceil($total_lots / $limit));
     $pagination['pages'] = range(1, $total_pages);
-    $pagination['next'] = ($pagination['currant'] == $total_pages) ? false : ($pagination['currant'] + 1);
-    $pagination['previous'] = ($pagination['currant'] == 1) ? false : ($pagination['currant'] - 1);
+    $pagination['next'] = ($pagination['currant'] === $total_pages) ? false : ($pagination['currant'] + 1);
+    $pagination['previous'] = ($pagination['currant'] === 1) ? false : ($pagination['currant'] - 1);
 
     /** @var string $pagination_content содержит блок верстки для постраничной навигации */
     $pagination_content = templateEngine('pagination', ['pagination' => $pagination]);
@@ -53,18 +54,18 @@ if ($total_lots > $limit) {
 }
 
 $category = getCategoryName($id, $categories);
-
+/** @var string $nav_panel навигационное меню */
+$nav_panel = templateEngine('nav_panel', ['categories' => $categories]);
 /** @var string $main_content содержит результат работы шаблонизатора */
 $main_content = templateEngine(
     'all-lots',
     [
         'category' => $category,
         'lots' => $lots,
+        'nav_panel' => $nav_panel,
         'pagination_content' => $pagination_content
     ]
 );
-/** @var string $nav_panel навигационное меню */
-$nav_panel = templateEngine('nav_panel', ['categories' => $categories]);
 echo templateEngine(
     'layout',
     [

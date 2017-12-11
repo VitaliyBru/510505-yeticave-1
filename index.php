@@ -1,5 +1,6 @@
 <?php
 require_once 'functions.php';
+require_once 'mysql_helper.php';
 require_once 'authorization.php';
 require_once 'init.php';
 require_once 'getwinner.php';
@@ -38,8 +39,8 @@ if ($total_lots > $limit) {
     $pagination['goto'] = "index.php?p=";
     $total_pages = intval(ceil($total_lots / $limit));
     $pagination['pages'] = range(1, $total_pages);
-    $pagination['next'] = ($pagination['currant'] == $total_pages) ? false : ($pagination['currant'] + 1);
-    $pagination['previous'] = ($pagination['currant'] == 1) ? false : ($pagination['currant'] - 1);
+    $pagination['next'] = ($pagination['currant'] === $total_pages) ? false : ($pagination['currant'] + 1);
+    $pagination['previous'] = ($pagination['currant'] === 1) ? false : ($pagination['currant'] - 1);
 
     /** @var string $pagination_content содержит блок верстки для постраничной навигации */
     $pagination_content = templateEngine('pagination', ['pagination' => $pagination]);

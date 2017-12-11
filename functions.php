@@ -156,13 +156,7 @@ function isNotEmail(string $value)
  */
 function isNotCategory($complex = [])
 {
-    $answer = true;
-    foreach ($complex['categories'] as $categories){
-        if ($complex['id'] == $categories['id']) {
-            $answer = false;
-            break;
-        }
-    }
+    $answer = !in_array($complex['id'], array_column($complex['categories'], 'id'));
     return $answer;
 }
 
@@ -271,20 +265,11 @@ function getUser(mysqli $_link, string $_email)
     WHERE 
       email = ?";
     try {
-        $stmt = db_get_prepare_stmt($_link, $query, [$_email]);
+        $user = getExecutedQueryResult($_link, $query, [$_email]);
     } catch (Exception $e) {
         throw new Exception($e->getMessage(), $e->getCode());
     }
-    mysqli_stmt_execute($stmt);
-    if (mysqli_stmt_errno($stmt)) {
-        throw new Exception(mysqli_stmt_error($stmt), mysqli_stmt_errno($stmt));
-    }
-    $user = ['id' => null, 'name' => '', 'password' => '', 'avatar' => ''];
-    mysqli_stmt_bind_result($stmt, $user['id'], $user['name'], $user['password'], $user['avatar']);
-    if (mysqli_stmt_fetch($stmt)) {
-        return $user;
-    }
-    return [];
+    return isset($user[0]) ? $user[0] : [];
 }
 
 /**
@@ -345,6 +330,7 @@ function showErrors(Exception $_error)
     echo templateEngine(
         'layout',
         [
+            'nav_panel' => '',
             'title' => 'Ошибка',
             'is_auth' => false,
             'user_name' => '',
@@ -381,10 +367,10 @@ FROM
 WHERE 
   date_end > CURRENT_DATE
 ORDER BY lots.id DESC
-LIMIT $limit OFFSET $offset
+LIMIT ? OFFSET ?
 ";
     try {
-        $lots = mysqli_query_fetch_all($_link, $query);
+        $lots = getExecutedQueryResult($_link, $query, [$limit, $offset]);
     } catch (Exception $e) {
         Throw new Exception($e->getMessage(), $e->getCode());
     }
@@ -404,6 +390,7 @@ function getLotsWithUsersBets(mysqli $_link, int $_user_id)
 {
     $query = "
     SELECT
+      my_bets.id,
       lots.id AS lot_id, 
       lots.name, 
       UNIX_TIMESTAMP(date_end) AS date_end, 
@@ -411,6 +398,7 @@ function getLotsWithUsersBets(mysqli $_link, int $_user_id)
       UNIX_TIMESTAMP(date) AS ts,
       img_url,
       categories.name AS category,
+      (lots.winner_id <=> my_bets.user_id) AS winner,
       contact
     FROM 
       (SELECT 
@@ -418,14 +406,14 @@ function getLotsWithUsersBets(mysqli $_link, int $_user_id)
       FROM 
         bets
       WHERE
-        user_id = $_user_id
-        ORDER BY id DESC) AS my_bets
+        user_id = ?) AS my_bets
     LEFT JOIN lots ON my_bets.lot_id = lots.id 
     LEFT JOIN categories ON lots.category_id = categories.id
     LEFT JOIN users ON lots.author_id = users.id
+    ORDER BY my_bets.id DESC
     ";
     try {
-        $lots = mysqli_query_fetch_all($_link, $query);
+        $lots = getExecutedQueryResult($_link, $query, [$_user_id]);
     } catch (Exception $e) {
         Throw new Exception($e->getMessage(), $e->getCode());
     }
@@ -458,17 +446,14 @@ function getOneLot(mysqli $_link, int $lot_id)
       lots
     LEFT JOIN categories ON lots.category_id = categories.id
     WHERE 
-      lots.id = $lot_id
+      lots.id = ?
     ";
-    $result_obj = mysqli_query($_link, $query);
-    $lot = [];
-    if ($result_obj) {
-        $lot = mysqli_fetch_assoc($result_obj);
+    try {
+        $lot = getExecutedQueryResult($_link, $query, [$lot_id]);
+    } catch (Exception $e) {
+        Throw new Exception($e->getMessage(), $e->getCode());
     }
-    if (mysqli_errno($_link)) {
-        Throw new Exception(mysqli_error($_link), mysqli_errno($_link));
-    }
-    return $lot;
+    return isset($lot[0]) ? $lot[0] : [];
 }
 
 /**
@@ -493,11 +478,11 @@ function getBetsForLot(mysqli $_link, int $lot_id)
       bets
     LEFT JOIN users ON bets.user_id = users.id
     WHERE 
-     lot_id = $lot_id
+     lot_id = ?
     ORDER BY bets.id DESC 
      ";
     try {
-        $bets = mysqli_query_fetch_all($_link, $query);
+        $bets = getExecutedQueryResult($_link, $query, [$lot_id]);
     } catch (Exception $e) {
         Throw new Exception($e->getMessage(), $e->getCode());
     }
@@ -565,7 +550,7 @@ function getTotalNumberFoundRows(mysqli $_link)
     if (mysqli_errno($_link)) {
         throw new Exception(mysqli_error($_link), mysqli_errno($_link));
     }
-    if ($result[0] == -1) {
+    if ($result[0] === -1) {
         throw new Exception("Неизвестная ошибка: не удалось получить количество найденных записей");
     }
     return (int) $result[0];
@@ -598,12 +583,33 @@ function getFoundLots(mysqli $_link, int $offset = 0, int $limit = 3, string $se
     WHERE 
       date_end > CURRENT_DATE
       AND 
-      MATCH(lots.name, description) AGAINST(? IN BOOLEAN MODE)
-    ORDER BY lots.id DESC
-    LIMIT $limit OFFSET $offset
+        (lots.name LIKE ? 
+        OR 
+        description LIKE ?)
+    LIMIT ? OFFSET ?
 ";
     try {
-        $stmt = db_get_prepare_stmt($_link, $query, [$search]);
+        $lots =getExecutedQueryResult($_link, $query, [$search, $search, $limit, $offset]);
+    } catch (Exception $e) {
+        throw new Exception($e->getMessage(), $e->getCode());
+    }
+    return $lots;
+}
+
+/**
+ * Возвращает двумерный массив результатов выполнения стороки sql запроса
+ *
+ * @param mysqli $_link Идентификатор соединения
+ * @param string $query Строка состоящая из sql запроса
+ * @param array $data_array Данные для подстановки в строку запроса
+ *
+ * @return array
+ * @throws Exception
+ */
+function getExecutedQueryResult(mysqli $_link, string $query, $data_array = array())
+{
+    try {
+        $stmt = db_get_prepare_stmt($_link, $query, $data_array);
     } catch (Exception $e) {
         throw new Exception($e->getMessage(), $e->getCode());
     }
@@ -619,15 +625,15 @@ function getFoundLots(mysqli $_link, int $offset = 0, int $limit = 3, string $se
     }
     $value = array_merge([$stmt], $anchor);
     call_user_func_array('mysqli_stmt_bind_result', $value);
-    $lots = array();
+    $result = array();
     $i = 0;
     while (mysqli_stmt_fetch($stmt)) {
         foreach ($data as $col => $datum ) {
-            $lots[$i][$col] = $datum;
+            $result[$i][$col] = $datum;
         }
         $i++;
     }
-    return $lots;
+    return $result;
 }
 
 /**
@@ -658,12 +664,12 @@ FROM
 WHERE 
   date_end > CURRENT_DATE
   AND 
-  category_id = $category_id
+  category_id = ?
 ORDER BY lots.id DESC
-LIMIT $limit OFFSET $offset
+LIMIT ? OFFSET ?
 ";
     try {
-        $lots = mysqli_query_fetch_all($_link, $query);
+        $lots = getExecutedQueryResult($_link, $query, [$category_id, $limit, $offset]);
     } catch (Exception $e) {
         Throw new Exception($e->getMessage(), $e->getCode());
     }
@@ -681,7 +687,7 @@ LIMIT $limit OFFSET $offset
 function getCategoryName(int $category_id, $categories = [])
 {
     foreach ($categories as $row) {
-        if ($row['id'] = $category_id) {
+        if ((int)$row['id'] === $category_id) {
             return $row['name'];
         }
     }
@@ -754,10 +760,9 @@ function getListWinnerBets($_bets)
  */
 function setWinnerId(mysqli $_link, int $_user_id, int $_lot_id)
 {
-    $query = "UPDATE `yeticave`.`lots` SET `winner_id` = $_user_id WHERE  `id` = $_lot_id";
-    $data = [];
+    $query = "UPDATE `yeticave`.`lots` SET `winner_id` = $_user_id WHERE  `id` = ?";
     try {
-        $stmt = db_get_prepare_stmt($_link, $query, $data);
+        $stmt = db_get_prepare_stmt($_link, $query, [$_lot_id]);
     } catch (Exception $e) {
         throw new Exception("Ошибка: " . $e->getMessage(), $e->getCode());
     }
@@ -805,9 +810,55 @@ function getUserFromId(mysqli $_link, int $_user_id)
     return [];
 }
 
+/**
+ * Запускает сессию (если еще не запущена) и передает данные о пользователе
+ * в массив $_SESSION['user']
+ *
+ * @param array $user массив с данными залогиневшегося пользователя
+ */
+function setSessionAndStart($user = array())
+{
+    $secure_key = md5($_SERVER['HTTP_USER_AGENT'] . $_SERVER['REMOTE_ADDR']);
+    if (session_status() != PHP_SESSION_ACTIVE) {
+        session_start();
+    }
+    $_SESSION['user'] = [
+        'secure_key' => $secure_key,
+        'id' => $user['id'],
+        'name' => $user['name'],
+        'avatar' => $user['avatar']
+    ];
+}
 
+/**
+ * Возвращает массив с данными о пользователе если email и пароль верны
+ * если нет то пустой массив
+ *
+ * @param mysqli $_link Идентификатор соединения
+ * @param array $_login Массив с данными из формы входа
+ * @param array $errors Ссылка на массив с флагами ошибок
+ *
+ * @return array
+ */
+function getAuthenticUser(mysqli $_link, $_login, &$errors)
+{
+    $user = [];
+    //проверяем корректность написания email адреса и его соответствие с пользователем
+    if (isNotEmail($_login['email'])) {
+        $errors['email']['isWrong'] = true;
+    } else {
+        $user = getUser($_link, $_login['email']);
+        $errors['email']['isWrong'] = empty($user);
+    }
 
+    //если пользователь найден проверяем пароль
+    if (!$errors['email']['isWrong']) {
+        $errors['password']['isWrong'] = !password_verify($_login['password'], $user['password']);
+    }
 
+    if ($errors['password']['isWrong']) {
+        $user = [];
+    }
 
-
-
+    return $user;
+}

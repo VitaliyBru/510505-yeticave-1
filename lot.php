@@ -14,9 +14,11 @@ try {
     $lot = getOneLot($link, $id);
     if (empty($lot)) {
         mysqli_close($link);
-        http_response_code(404);
+        header("Location: /error_404.php", true, 404);
         exit();
     }
+    /** @var bool $bet_error флаг ошибки */
+    $bet_error = false;
     /** @var array $categories список категорий */
     $categories = getCategories($link);
     /** @var array $bets список всех ставок сделанных на конкретный лот */
@@ -26,12 +28,13 @@ try {
     /** @var bool $bet_done пользователь уже делал ставку на этотом лоте */
     $bet_done = in_array($user_id, array_column($bets, 'user_id'));
     /** @var bool $bet_forbidden true когда пользователю запрещено делать ставку */
-    $bet_forbidden = ($bet_done or !$is_auth or ($lot['author_id'] == $user_id));
+    $bet_forbidden = ($bet_done or !$is_auth or ($lot['author_id'] === $user_id));
 
     if ($_SERVER['REQUEST_METHOD'] == 'POST' || !$bet_forbidden) {
         $bet_sent = null;
         if (isset($_POST['cost'])) {
             $bet_sent = $_POST['cost'];
+            $bet_error = true;
         }
         if (isBetCorrect($bet_sent, $bet_amounts['not_less'])) {
             /** @var array $bet ставка пользователя */
@@ -43,6 +46,7 @@ try {
 
             if (setInTable($link, $bet, 'bets')) {
                 header('Location: /my-lots.php');
+                exit();
             }
         }
     }
@@ -61,7 +65,8 @@ $main_content = templateEngine(
         'lot' => $lot,
         'bets' => $bets,
         'bet_amounts' => $bet_amounts,
-        'bet_forbidden' => $bet_forbidden
+        'bet_forbidden' => $bet_forbidden,
+        'bet_error' => $bet_error
     ]
 );
 echo templateEngine(

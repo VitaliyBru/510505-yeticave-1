@@ -10,8 +10,10 @@ $limit = 3;
 $pagination['currant'] = intval($_GET['p'] ?? 1);
 /** @var int $offset смещение в выдаче результатов поиска */
 $offset = ($pagination['currant'] - 1) * $limit;
-/** @var string $search поисковый запрос */
+/** @var string $search поисковый запрос пользователя */
 $search = trim($_GET['search'] ?? '');
+/** @var string $search_request обработанный для поиска запрос пользователя */
+$search_request = "%$search%";
 
 try {
     // получаем из бд список категорий
@@ -20,7 +22,7 @@ try {
     if ($search) {
         // получаем из бд список активных лотов
         /** @var array $lots список лотов */
-        $lots = getFoundLots($link, $offset, $limit, $search);
+        $lots = getFoundLots($link, $offset, $limit, $search_request);
         $total_lots = getTotalNumberFoundRows($link);
     } else {
         $lots = array();
@@ -41,8 +43,8 @@ if ($total_lots > $limit) {
     $pagination['goto'] = "search.php?search={$search}&p=";
     $total_pages = intval(ceil($total_lots / $limit));
     $pagination['pages'] = range(1, $total_pages);
-    $pagination['next'] = ($pagination['currant'] == $total_pages) ? false : ($pagination['currant'] + 1);
-    $pagination['previous'] = ($pagination['currant'] == 1) ? false : ($pagination['currant'] - 1);
+    $pagination['next'] = ($pagination['currant'] === $total_pages) ? false : ($pagination['currant'] + 1);
+    $pagination['previous'] = ($pagination['currant'] === 1) ? false : ($pagination['currant'] - 1);
 
     /** @var string $pagination_content содержит блок верстки для постраничной навигации */
     $pagination_content = templateEngine('pagination', ['pagination' => $pagination]);
@@ -50,17 +52,18 @@ if ($total_lots > $limit) {
     $pagination_content = '';
 }
 
+/** @var string $nav_panel навигационное меню */
+$nav_panel = templateEngine('nav_panel', ['categories' => $categories]);
 /** @var string $main_content содержит результат работы шаблонизатора */
 $main_content = templateEngine(
     'search',
     [
         'search' => $search,
         'lots' => $lots,
+        'nav_panel' => $nav_panel,
         'pagination_content' => $pagination_content
     ]
 );
-/** @var string $nav_panel навигационное меню */
-$nav_panel = templateEngine('nav_panel', ['categories' => $categories]);
 echo templateEngine(
     'layout',
     [

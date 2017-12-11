@@ -4,15 +4,19 @@ require_once 'mysql_helper.php';
 require_once 'authorization.php';
 require_once 'init.php';
 
+/** @var array $login Массив с данными из формы входа */
 $login = ['email' => '', 'password' => ''];
+/** @var array $errors Массив с флагами ошибок */
 $errors = [
     'form' => false,
     'email' => ['isEmpty' => false, 'isWrong' => false],
     'password' => ['isEmpty' => false, 'isWrong' => false]
 ];
+/** @var array $e_rules массив с правилами проверок заполниния формы */
 $e_rules = ['email' => 'isEmpty', 'password' => 'isEmpty'];
 
 try {
+    /** @var array $categories массив с наименованиями категорий товаров */
     $categories = getCategories($link);
     if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login'])) {
         $login = $_POST['login'];
@@ -23,33 +27,13 @@ try {
             $errors['form'] = ($errors['form'] or $errors[$key][$e_rules[$key]]);
         }
 
-        //если все поля заполненны
+        //если все поля заполненны получаем пользователя по его email если пароль совпадает
         if (!$errors['form']) {
-            $user = null;
+            $user = getAuthenticUser($link, $login, $errors);
 
-            //проверяем корректность написания email адреса и его соответствие с пользователем
-            if (isNotEmail($login['email'])) {
-                $errors['email']['isWrong'] = true;
-            } else {
-                $user = getUser($link, $login['email']);
-                $errors['email']['isWrong'] = empty($user);
-            }
-
-            //если пользователь найден проверяем пароль
-            if (!$errors['email']['isWrong']) {
-                $errors['password']['isWrong'] = !password_verify($login['password'], $user['password']);
-            }
-
-            //если ошибок нет открываем сессию
-            if (!$errors['email']['isWrong'] && !$errors['password']['isWrong']) {
-                $secure_key = md5($_SERVER['HTTP_USER_AGENT'] . $_SERVER['REMOTE_ADDR']);
-                session_start();
-                $_SESSION['user'] = [
-                    'secure_key' => $secure_key,
-                    'id' => $user['id'],
-                    'name' => $user['name'],
-                    'avatar' => $user['avatar']
-                ];
+            //если пользователь аутентифицирован устанавливаем сессию
+            if (!empty($user)) {
+                setSessionAndStart($user);
                 header('Location: /index.php');
             }
         }
@@ -59,7 +43,7 @@ try {
     showErrors($e);
     exit();
 }
-
+/** @var string $nav_panel верстка панели навигации по категориям */
 $nav_panel = templateEngine('nav_panel', ['categories' => $categories]);
 $main_content = templateEngine(
     'login',
