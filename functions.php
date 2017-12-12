@@ -67,12 +67,13 @@ function betTime($_ts)
 /**
  * Защита от XSS атак
  *
- * @param string $user_data
+ * @param mixed $user_data
  *
  * @return string
  */
-function secure(string $user_data)
+function secure($user_data)
 {
+    $user_data = (string)$user_data;
     return htmlspecialchars($user_data);
 }
 
