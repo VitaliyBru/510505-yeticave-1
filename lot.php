@@ -30,7 +30,7 @@ try {
     /** @var bool $bet_forbidden true когда пользователю запрещено делать ставку */
     $bet_forbidden = ($bet_done or !$is_auth or ($lot['author_id'] === $user_id));
 
-    if ($_SERVER['REQUEST_METHOD'] == 'POST' || !$bet_forbidden) {
+    if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$bet_forbidden) {
         $bet_sent = null;
         if (isset($_POST['cost'])) {
             $bet_sent = $_POST['cost'];
