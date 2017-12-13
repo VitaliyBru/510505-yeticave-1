@@ -34,7 +34,7 @@ try {
     /** @var array $categories массив со списком категорий */
     $categories = getCategories($link);
 
-    if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['user'])) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user'])) {
         $user = $_POST['user'];
 
         // сохранить файл изображения и получить на него ссылку
