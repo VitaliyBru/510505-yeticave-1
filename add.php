@@ -52,7 +52,7 @@ try {
 }
 
 // если данные отправленны методом POST авторизованным пользователем
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && $is_auth) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $is_auth) {
     if (isset($_POST['lot'])) {
         $lot = $_POST['lot'];
     }

@@ -18,7 +18,7 @@ $e_rules = ['email' => 'isEmpty', 'password' => 'isEmpty'];
 try {
     /** @var array $categories массив с наименованиями категорий товаров */
     $categories = getCategories($link);
-    if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login'])) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
         $login = $_POST['login'];
 
         //проверяем заполненность полей
